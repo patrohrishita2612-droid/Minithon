@@ -68,6 +68,12 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event() -> None:
         init_db()
+        if "test" not in settings.DATABASE_URL:
+            try:
+                from app.seed import seed_demo_data
+                seed_demo_data()
+            except Exception:
+                pass
 
     app.include_router(users_router)
     app.include_router(services_router)

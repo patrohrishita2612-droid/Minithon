@@ -33,6 +33,21 @@ async def create_user(payload: UserCreate, db: Session = Depends(get_db)) -> dic
     }))
 
 
+@router.get("")
+async def list_users(email: str | None = Query(default=None), db: Session = Depends(get_db)) -> dict[str, Any]:
+    stmt = select(User)
+    if email:
+        stmt = stmt.where(User.email == email)
+    users = db.scalars(stmt).all()
+    return api_success([serialize_value({
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+    }) for user in users])
+
+
 @router.get("/{user_id}")
 async def get_user(user_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
     user = db.get(User, user_id)
