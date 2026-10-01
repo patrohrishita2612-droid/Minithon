@@ -78,6 +78,7 @@ def create_app() -> FastAPI:
     async def hello() -> dict[str, str]:
         return {"message": "Hello from FastAPI Backend!"}
 
+    @app.get("/health")
     @app.get("/api/health")
     async def health() -> dict[str, object]:
         return {
