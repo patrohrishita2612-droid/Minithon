@@ -133,7 +133,6 @@ class RecoveryEmailUpdate(BaseSchema):
 class RecoveryEmailResponse(BaseSchema):
     id: str
     user_id: str
-    email: str
     is_primary: bool
     is_verified: bool
     created_at: datetime
@@ -156,7 +155,6 @@ class PhoneNumberUpdate(BaseSchema):
 class PhoneNumberResponse(BaseSchema):
     id: str
     user_id: str
-    phone_number: str
     is_primary: bool
     is_verified: bool
     created_at: datetime
@@ -237,11 +235,8 @@ class BreachEventResponse(BaseSchema):
     id: str
     service_id: str
     account_id: str | None = None
-    title: str
-    description: str | None = None
     severity: Severity
     breach_date: datetime | None = None
-    source: str | None = None
     is_simulated: bool
     created_at: datetime
 

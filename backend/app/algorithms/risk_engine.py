@@ -98,7 +98,7 @@ def _get_user_accounts(db: Session, user_id: str) -> list[Account]:
         select(Account)
         .where(Account.user_id == user_id)
         .options(selectinload(Account.service), selectinload(Account.permissions), selectinload(Account.breach_events))
-        .order_by(Account.created_at.asc())
+        .order_by(Account.created_at.asc(), Account.id.asc())
     ).all()
 
 
@@ -206,7 +206,10 @@ def calculate_account_risk(
     factors["network"] = {"normalized": round(network_norm, 4), "points": round(network_points, 4)}
 
     # Breach exposure
-    breach_events = [event for event in account.breach_events if event is not None]
+    breach_events = sorted(
+        (event for event in account.breach_events if event is not None),
+        key=lambda event: event.id,
+    )
     breach_norm = 0.0
     breach_points = 0.0
     if breach_events:
@@ -226,7 +229,7 @@ def calculate_account_risk(
                 _build_reason(
                     "BREACH",
                     _enum_value(event.severity),
-                    f"Known breach event reported for {event.title or 'this account'}.",
+                    "A known breach event is recorded for this account.",
                 )
             )
     factor_points["breach"] = breach_points

@@ -10,10 +10,14 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.database.database import init_db
 from app.routers.accounts import router as accounts_router
+from app.routers.breaches import router as breaches_router
 from app.routers.connections import router as connections_router
 from app.routers.exposure import router as exposure_router
+from app.routers.hygiene import router as hygiene_router
+from app.routers.notifications import router as notifications_router
 from app.routers.permissions import router as permissions_router
 from app.routers.recovery import router as recovery_router
+from app.routers.remediation import router as remediation_router
 from app.routers.risk import router as risk_router
 from app.routers.services import router as services_router
 from app.routers.users import router as users_router
@@ -68,15 +72,15 @@ def create_app() -> FastAPI:
     app.include_router(users_router)
     app.include_router(services_router)
     app.include_router(accounts_router)
+    app.include_router(breaches_router)
     app.include_router(recovery_router)
     app.include_router(permissions_router)
     app.include_router(connections_router)
     app.include_router(exposure_router)
     app.include_router(risk_router)
-
-    @app.get("/api/hello")
-    async def hello() -> dict[str, str]:
-        return {"message": "Hello from FastAPI Backend!"}
+    app.include_router(remediation_router)
+    app.include_router(hygiene_router)
+    app.include_router(notifications_router)
 
     @app.get("/health")
     @app.get("/api/health")

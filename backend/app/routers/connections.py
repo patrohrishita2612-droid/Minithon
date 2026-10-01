@@ -81,11 +81,11 @@ async def list_user_connections(user_id: str, db: Session = Depends(get_db)) -> 
     user = db.get(User, user_id)
     if not user:
         api_error("USER_NOT_FOUND", "User not found.", status.HTTP_404_NOT_FOUND)
-    accounts = db.scalars(select(Account.id).where(Account.user_id == user_id)).all()
+    accounts = db.scalars(select(Account.id).where(Account.user_id == user_id).order_by(Account.id)).all()
     connections = db.scalars(
-        select(AccountConnection).where(
-            ((AccountConnection.source_account_id.in_(accounts)) | (AccountConnection.target_account_id.in_(accounts)))
-        )
+        select(AccountConnection)
+        .where(AccountConnection.source_account_id.in_(accounts), AccountConnection.target_account_id.in_(accounts))
+        .order_by(AccountConnection.id)
     ).all()
     return api_success([serialize_value({
         "id": item.id,

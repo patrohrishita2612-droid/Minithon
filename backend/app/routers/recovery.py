@@ -27,7 +27,6 @@ async def create_recovery_email(payload: RecoveryEmailCreate, db: Session = Depe
     return api_success(serialize_value({
         "id": record.id,
         "user_id": record.user_id,
-        "email": record.email,
         "is_primary": record.is_primary,
         "is_verified": record.is_verified,
         "created_at": record.created_at,
@@ -43,7 +42,6 @@ async def get_recovery_email(email_id: str, db: Session = Depends(get_db)) -> di
     return api_success(serialize_value({
         "id": record.id,
         "user_id": record.user_id,
-        "email": record.email,
         "is_primary": record.is_primary,
         "is_verified": record.is_verified,
         "created_at": record.created_at,
@@ -89,11 +87,12 @@ async def get_user_recovery_emails(user_id: str, db: Session = Depends(get_db)) 
     user = db.get(User, user_id)
     if not user:
         api_error("USER_NOT_FOUND", "User not found.", status.HTTP_404_NOT_FOUND)
-    items = db.scalars(select(RecoveryEmail).where(RecoveryEmail.user_id == user_id)).all()
+    items = db.scalars(
+        select(RecoveryEmail).where(RecoveryEmail.user_id == user_id).order_by(RecoveryEmail.created_at, RecoveryEmail.id)
+    ).all()
     return api_success([serialize_value({
         "id": item.id,
         "user_id": item.user_id,
-        "email": item.email,
         "is_primary": item.is_primary,
         "is_verified": item.is_verified,
         "created_at": item.created_at,
@@ -113,7 +112,6 @@ async def create_phone_number(payload: PhoneNumberCreate, db: Session = Depends(
     return api_success(serialize_value({
         "id": phone.id,
         "user_id": phone.user_id,
-        "phone_number": phone.phone_number,
         "is_primary": phone.is_primary,
         "is_verified": phone.is_verified,
         "created_at": phone.created_at,
@@ -126,11 +124,12 @@ async def get_user_phone_numbers(user_id: str, db: Session = Depends(get_db)) ->
     user = db.get(User, user_id)
     if not user:
         api_error("USER_NOT_FOUND", "User not found.", status.HTTP_404_NOT_FOUND)
-    items = db.scalars(select(PhoneNumber).where(PhoneNumber.user_id == user_id)).all()
+    items = db.scalars(
+        select(PhoneNumber).where(PhoneNumber.user_id == user_id).order_by(PhoneNumber.created_at, PhoneNumber.id)
+    ).all()
     return api_success([serialize_value({
         "id": item.id,
         "user_id": item.user_id,
-        "phone_number": item.phone_number,
         "is_primary": item.is_primary,
         "is_verified": item.is_verified,
         "created_at": item.created_at,
@@ -152,7 +151,6 @@ async def update_phone_number(phone_id: str, payload: PhoneNumberUpdate, db: Ses
     return api_success(serialize_value({
         "id": phone.id,
         "user_id": phone.user_id,
-        "phone_number": phone.phone_number,
         "is_primary": phone.is_primary,
         "is_verified": phone.is_verified,
         "created_at": phone.created_at,

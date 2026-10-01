@@ -19,9 +19,11 @@ async def create_permission(account_id: str, payload: AppPermissionCreate, db: S
     account = db.get(Account, account_id)
     if not account:
         api_error("ACCOUNT_NOT_FOUND", "Account not found.", status.HTTP_404_NOT_FOUND)
+    if payload.account_id is not None and payload.account_id != account.id:
+        api_error("ACCOUNT_MISMATCH", "Permission account_id must match the account in the request path.", status.HTTP_400_BAD_REQUEST)
 
     permission = AppPermission(
-        account_id=payload.account_id or account_id,
+        account_id=account.id,
         permission_type=payload.permission_type,
         description=payload.description,
         sensitivity=payload.sensitivity,
@@ -50,7 +52,11 @@ async def list_permissions(account_id: str, db: Session = Depends(get_db)) -> di
     account = db.get(Account, account_id)
     if not account:
         api_error("ACCOUNT_NOT_FOUND", "Account not found.", status.HTTP_404_NOT_FOUND)
-    permissions = db.scalars(select(AppPermission).where(AppPermission.account_id == account_id)).all()
+    permissions = db.scalars(
+        select(AppPermission)
+        .where(AppPermission.account_id == account_id)
+        .order_by(AppPermission.created_at.asc(), AppPermission.id.asc())
+    ).all()
     return api_success([serialize_value({
         "id": item.id,
         "account_id": item.account_id,

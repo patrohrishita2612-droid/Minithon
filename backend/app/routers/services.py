@@ -41,7 +41,7 @@ async def list_services(category: ServiceCategory | None = Query(default=None), 
     stmt = select(Service)
     if category is not None:
         stmt = stmt.where(Service.category == category)
-    services = db.scalars(stmt.order_by(Service.name)).all()
+    services = db.scalars(stmt.order_by(Service.name, Service.id)).all()
     payload = [serialize_value({
         "id": service.id,
         "name": service.name,

@@ -114,7 +114,9 @@ async def get_user_risk_history_endpoint(
     """Return snapshot history for a user's privacy posture over time."""
     _require_user(db, user_id)
     snapshots = db.scalars(
-        select(RiskSnapshot).where(RiskSnapshot.user_id == user_id).order_by(RiskSnapshot.snapshot_date.desc())
+        select(RiskSnapshot)
+        .where(RiskSnapshot.user_id == user_id)
+        .order_by(RiskSnapshot.snapshot_date.desc(), RiskSnapshot.id.asc())
     ).all()
     payload = [
         {

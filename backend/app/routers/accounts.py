@@ -4,7 +4,7 @@ from typing import Any
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database.database import get_db
@@ -124,20 +124,25 @@ async def list_user_accounts(
     if not user:
         api_error("USER_NOT_FOUND", "User not found.", status.HTTP_404_NOT_FOUND)
 
-    stmt = select(Account).where(Account.user_id == user_id).options(selectinload(Account.service))
+    criteria = [Account.user_id == user_id]
     if service_id:
-        stmt = stmt.where(Account.service_id == service_id)
+        criteria.append(Account.service_id == service_id)
     if status:
-        stmt = stmt.where(Account.status == status)
+        criteria.append(Account.status == status)
     if two_factor_enabled is not None:
-        stmt = stmt.where(Account.two_factor_enabled == two_factor_enabled)
+        criteria.append(Account.two_factor_enabled == two_factor_enabled)
     if sign_in_method:
-        stmt = stmt.where(Account.sign_in_method == sign_in_method)
+        criteria.append(Account.sign_in_method == sign_in_method)
     if is_active is not None:
-        stmt = stmt.where(Account.is_active == is_active)
+        criteria.append(Account.is_active == is_active)
 
-    total = db.query(Account).filter(Account.user_id == user_id).count()
-    items = db.scalars(stmt.order_by(Account.created_at.desc()).offset((page - 1) * limit).limit(limit)).all()
+    stmt = select(Account).where(*criteria).options(selectinload(Account.service))
+    total = db.scalar(select(func.count()).select_from(Account).where(*criteria)) or 0
+    items = db.scalars(
+        stmt.order_by(Account.created_at.desc(), Account.id.asc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    ).all()
     payload = {
         "items": [serialize_account(item) for item in items],
         "page": page,
@@ -191,13 +196,36 @@ async def get_user_footprint(user_id: str, db: Session = Depends(get_db)) -> dic
     if not user:
         api_error("USER_NOT_FOUND", "User not found.", status.HTTP_404_NOT_FOUND)
 
-    accounts = db.scalars(select(Account).where(Account.user_id == user_id).options(selectinload(Account.service))).all()
-    services = db.scalars(select(Service).where(Service.id.in_([account.service_id for account in accounts]))).all()
-    recovery_emails = db.scalars(select(AccountRecoveryEmail).where(AccountRecoveryEmail.account_id.in_([account.id for account in accounts]))).all()
-    phone_links = db.scalars(select(AccountPhoneNumber).where(AccountPhoneNumber.account_id.in_([account.id for account in accounts]))).all()
-    permissions = db.scalars(select(AppPermission).where(AppPermission.account_id.in_([account.id for account in accounts]))).all()
+    accounts = db.scalars(
+        select(Account)
+        .where(Account.user_id == user_id)
+        .options(selectinload(Account.service))
+        .order_by(Account.created_at.asc(), Account.id.asc())
+    ).all()
     account_ids = [account.id for account in accounts]
-    connections = db.scalars(select(AccountConnection).where((AccountConnection.source_account_id.in_(account_ids)) | (AccountConnection.target_account_id.in_(account_ids)))).all()
+    services = db.scalars(
+        select(Service).where(Service.id.in_([account.service_id for account in accounts])).order_by(Service.name, Service.id)
+    ).all()
+    recovery_emails = db.scalars(
+        select(AccountRecoveryEmail)
+        .where(AccountRecoveryEmail.account_id.in_(account_ids))
+        .order_by(AccountRecoveryEmail.account_id, AccountRecoveryEmail.id)
+    ).all()
+    phone_links = db.scalars(
+        select(AccountPhoneNumber)
+        .where(AccountPhoneNumber.account_id.in_(account_ids))
+        .order_by(AccountPhoneNumber.account_id, AccountPhoneNumber.id)
+    ).all()
+    permissions = db.scalars(
+        select(AppPermission)
+        .where(AppPermission.account_id.in_(account_ids))
+        .order_by(AppPermission.account_id, AppPermission.id)
+    ).all()
+    connections = db.scalars(
+        select(AccountConnection)
+        .where(AccountConnection.source_account_id.in_(account_ids), AccountConnection.target_account_id.in_(account_ids))
+        .order_by(AccountConnection.id)
+    ).all()
 
     user_payload = serialize_value({
         "id": user.id,

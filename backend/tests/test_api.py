@@ -173,10 +173,15 @@ def test_recovery_methods_linking_and_footprint() -> None:
 
     email_response = client.post("/api/recovery/emails", json={"user_id": user_id, "email": "backup@example.com", "is_primary": True, "is_verified": True})
     assert email_response.status_code == 200
+    assert "backup@example.com" not in email_response.text
     email_id = email_response.json()["data"]["id"]
+    email_details = client.get(f"/api/recovery/emails/{email_id}")
+    assert email_details.status_code == 200
+    assert "backup@example.com" not in email_details.text
 
     phone_response = client.post("/api/recovery/phones", json={"user_id": user_id, "phone_number": "+919900000001", "is_primary": False, "is_verified": True})
     assert phone_response.status_code == 200
+    assert "+919900000001" not in phone_response.text
     phone_id = phone_response.json()["data"]["id"]
 
     link_email = client.post(f"/api/accounts/{account_id}/recovery-email/{email_id}")
@@ -192,6 +197,13 @@ def test_recovery_methods_linking_and_footprint() -> None:
     assert len(data["recovery_emails"]) >= 1
     assert len(data["phone_numbers"]) >= 1
     assert len(data["connections"]) >= 0
+    assert "backup@example.com" not in footprint.text
+    assert "+919900000001" not in footprint.text
+
+    listed_emails = client.get(f"/api/recovery/users/{user_id}/recovery-emails")
+    listed_phones = client.get(f"/api/recovery/users/{user_id}/recovery-phones")
+    assert "backup@example.com" not in listed_emails.text
+    assert "+919900000001" not in listed_phones.text
 
 
 def test_validation_and_filters() -> None:
